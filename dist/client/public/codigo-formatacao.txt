@@ -1,0 +1,122 @@
+============================================================
+CÓDIGO DE FORMATAÇÃO - ASSISTENTE JURÍDICO
+============================================================
+Arquivo: client/src/pages/legal-assistant.tsx
+Linhas: 1494 a 1600
+
+PROBLEMA REPORTADO:
+- Quando o usuário configura recuo de parágrafo (ex: 2cm ou 4cm),
+  o recuo está sendo aplicado em TUDO (títulos, cabeçalhos, citações)
+  quando deveria ser APENAS nos parágrafos de corpo de texto.
+
+SOLUÇÃO IMPLEMENTADA:
+- bodyIndent (com text-indent) → só para parágrafos longos (>80 chars ou com pontuação)
+- noIndent → para linhas curtas, dados, informações
+- titleStyle → para títulos (MAIÚSCULAS, I., II., 1.) - negrito, sem recuo
+- headerStyle → para cabeçalho (EXCELENTÍSSIMO, Processo) - centralizado, sem recuo
+- citStyle → para citações (aspas, Art., §) - recuo à esquerda, fonte menor
+- sigStyle → para assinatura (OAB, Pede deferimento) - centralizado
+
+TESTE FEITO COM TEXTO JURÍDICO:
+[CABEÇALHO   ] centralizado              | "EXCELENTÍSSIMO SENHOR DOUTOR JUIZ..."
+[CABEÇALHO   ] centralizado              | "Processo nº 0001234..."
+[CABEÇALHO   ] centralizado              | "AGRAVO DE INSTRUMENTO"
+[TÍTULO      ] sem recuo, negrito        | "I. DOS FATOS"
+[CORPO       ] text-indent: 2cm          | "O agravante, inconformado com..."
+[CORPO       ] text-indent: 2cm          | "Conforme demonstrado nos autos..."
+[TÍTULO      ] sem recuo, negrito        | "II. DO DIREITO"
+[CITAÇÃO     ] recuo esquerda 4cm        | ""O consumidor pode desistir..."
+[CITAÇÃO     ] recuo esquerda 4cm        | "Art. 6º São direitos básicos..."
+[TÍTULO      ] sem recuo, negrito        | "III. DO PEDIDO"
+[CORPO       ] text-indent: 2cm          | "Ante o exposto, requer seja..."
+[ASSINATURA  ] centralizado              | "Termos em que, Pede deferimento."
+[ASSINATURA  ] centralizado              | "Belo Horizonte, 26 de fevereiro..."
+[ASSINATURA  ] centralizado              | "ADVOGADO FULANO DE TAL OAB/MG..."
+
+RESULTADO: A lógica funciona corretamente.
+
+PROBLEMA REAL IDENTIFICADO:
+O Service Worker (PWA) faz cache dos arquivos JS/CSS no celular.
+Quando publica versão nova, o celular continua usando versão antiga.
+Solução: Botão "Atualizar" (laranja) no header que limpa cache + recarrega.
+
+============================================================
+CÓDIGO FONTE:
+============================================================
+
+// Detecta linhas de assinatura
+const isSignatureLine = (line) => {
+  const t = line.trim();
+  return /^(Advogad[oa]|OAB|Termos em que|Nestes termos|Pede deferimento|Respeitosamente|Data:|Local e data|___)/i.test(t)
+    || /^[A-Z\s]+,\s*\d{1,2}\s+de\s+\w+\s+de\s+\d{4}/i.test(t)
+    || /OAB\s*\/?\s*[A-Z]{2}\s*\d+/i.test(t);
+};
+
+// Detecta linhas de citação
+const isCitationLine = (line) => {
+  const t = line.trim();
+  return (t.startsWith('"') || t.startsWith('\u201c') || t.startsWith('\u00ab'))
+    || /^(Art\.|Artigo|§|Sumula|Ementa:|EMENTA:)/i.test(t);
+};
+
+// Detecta linhas de cabeçalho
+const isHeaderLine = (line) => {
+  const t = line.trim();
+  return /^(EXCELENT|MERITISSIM|ILUSTRISSIM|AO\s+JUIZ|AO\s+DESEMBARGADOR|SENHOR\s+JUIZ|SENHOR\s+DESEMBARGADOR|EGRE|TRIBUNAL|COMARCA|VARA\s|JUIZO|PROCESSO\s*(N|n)|AUTOS\s*(N|n)|AGRAVANTE|AGRAVAD[OA]|RECORRENTE|RECORRIDO|REQUERENTE|REQUERIDO|IMPETRANTE|IMPETRADO|EMBARGANTE|EMBARGADO|AUTOR[A]?:|RE[UÚ]:|APELANTE|APELAD[OA])/i.test(t)
+    || /^(AGRAVO|RECURSO|APELA[CÇ]|MANDADO|PETI[CÇ]|EMBARGOS|RECLAMA[CÇ]|HABEAS|A[CÇ][AÃ]O)/i.test(t)
+    || /^(CPF|CNPJ|RG|OAB)[\s:]/i.test(t)
+    || /^Advogad[oa].*OAB/i.test(t);
+};
+
+// Formata o texto
+const formatMarkdown = (text) => {
+  const s = formatSettings; // { fontFamily, fontSize, lineHeight, textAlign, paragraphIndent, citationIndent }
+  const baseFont = 'font-family: ' + s.fontFamily + '; font-size: ' + s.fontSize + 'pt; line-height: ' + s.lineHeight;
+  const noIndent = baseFont + '; text-align: ' + s.textAlign;
+  const bodyIndent = baseFont + '; text-align: ' + s.textAlign + '; text-indent: ' + s.paragraphIndent + 'cm';
+  const citStyle = baseFont + '; font-size: ' + Math.max(s.fontSize - 2, 8) + 'pt; line-height: 1; text-align: ' + s.textAlign + '; margin-left: ' + s.citationIndent + 'cm';
+  const sigStyle = baseFont + '; text-align: center';
+  const headerStyle = baseFont + '; text-align: center; font-weight: bold';
+  const headerSubStyle = baseFont + '; text-align: center';
+  const titleStyle = baseFont + '; text-align: ' + s.textAlign + '; font-weight: bold';
+
+  // Divide em parágrafos (linhas vazias separam)
+  const lines = text.split('\n');
+  const paragraphs = [];
+  let current = [];
+  for (const line of lines) {
+    if (line.trim() === '') {
+      if (current.length > 0) { paragraphs.push(current.join('<br />')); current = []; }
+    } else { current.push(line); }
+  }
+  if (current.length > 0) paragraphs.push(current.join('<br />'));
+
+  let headerDone = false;
+
+  return paragraphs.map((p, idx) => {
+    const plain = p.replace(/<br\s*\/?>/g, ' ').trim();
+
+    // 1. Assinatura → centralizado
+    if (isSignatureLine(plain)) return '<p style="' + sigStyle + '">' + p + '</p>';
+
+    // 2. Citação → recuo esquerda, fonte menor
+    if (isCitationLine(plain)) return '<p style="' + citStyle + '">' + p + '</p>';
+
+    // 3. Cabeçalho (primeiros 8 parágrafos) → centralizado
+    if (!headerDone && idx < 8 && isHeaderLine(plain)) {
+      const isMain = /^(EXCELENT|MERITISSIM|ILUSTRISSIM)/i.test(plain.trim());
+      return '<p style="' + (isMain ? headerStyle : headerSubStyle) + '">' + p + '</p>';
+    }
+    if (!headerDone && idx > 0 && !isHeaderLine(plain)) headerDone = true;
+
+    // 4. Título (MAIÚSCULAS ou I. II. 1.) → negrito, SEM recuo
+    const isAllCaps = plain === plain.toUpperCase() && plain.length > 3 && plain.length < 200;
+    const isSectionTitle = /^[IVXLCDM]+[\.\)]\s/.test(plain.trim()) || /^\d+[\.\)]\s/.test(plain.trim());
+    if (isAllCaps || isSectionTitle) return '<p style="' + titleStyle + '"><strong>' + p + '</strong></p>';
+
+    // 5. Corpo de texto (longo ou com pontuação) → COM recuo
+    const isBodyText = plain.length > 80 || /[.;:,]\s/.test(plain);
+    const style = (isBodyText && s.paragraphIndent > 0) ? bodyIndent : noIndent;
+    return '<p style="' + style + '">' + p + '</p>';
+  }).join('');
+};

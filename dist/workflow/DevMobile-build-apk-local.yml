@@ -1,0 +1,125 @@
+name: "\uD83E\uDD16 Build APK Local - DevMobile (Capacitor)"
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  APP_NAME: "DevMobile"
+  PACKAGE_ID: "com.devmobile.ide"
+  THEME_COLOR: "#0d1117"
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Instalar componentes Android
+        run: |
+          yes | sdkmanager \
+            "build-tools;34.0.0" \
+            "platforms;android-34" \
+            "platform-tools" 2>/dev/null || true
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Instalar dependencias
+        run: |
+          npm install --legacy-peer-deps
+          npm install -g @expo/cli
+
+      - name: Exportar app Expo para web
+        run: |
+          npx expo export --platform web --output-dir ./dist-web 2>&1 || \
+          npx expo build:web --output-dir ./dist-web 2>&1 || \
+          echo "Export web nao disponivel, usando arquivos estaticos"
+
+      - name: Gerar icones
+        run: |
+          sudo apt-get install -y imagemagick -q 2>/dev/null
+          ICON_SRC="assets/images/icon.png"
+          if [ -f "$ICON_SRC" ]; then
+            convert "$ICON_SRC" -resize 192x192 icon-192.png
+            convert "$ICON_SRC" -resize 512x512 icon-512.png
+          else
+            INIT=$(echo "$APP_NAME" | head -c1 | tr '[:lower:]' '[:upper:]')
+            convert -size 192x192 xc:"$THEME_COLOR" \
+              -fill white -font /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf \
+              -pointsize 96 -gravity center -annotate 0 "$INIT" icon-192.png 2>/dev/null || true
+            cp icon-192.png icon-512.png && convert icon-512.png -resize 512x512 icon-512.png || true
+          fi
+          echo "Icones gerados"
+
+      - name: Gerar keystore
+        run: |
+          keytool -genkey -v \
+            -keystore release.keystore -alias app \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android123 -keypass android123 \
+            -dname "CN=DevMobile, OU=App, O=DevMobile, L=BR, ST=SP, C=BR"
+
+      - name: Setup Capacitor e build Android
+        run: |
+          WEB_DIR=$([ -d "dist-web" ] && echo "dist-web" || echo ".")
+          [ -f "$WEB_DIR/package.json" ] || echo '{"name":"devmobile","version":"1.0.0","private":true}' > "$WEB_DIR/package.json"
+
+          cd "$WEB_DIR"
+          npm install --save-exact \
+            @capacitor/cli@6.2.0 \
+            @capacitor/core@6.2.0 \
+            @capacitor/android@6.2.0
+
+          cat > capacitor.config.json << CAPEOF
+          {
+            "appId": "$PACKAGE_ID",
+            "appName": "$APP_NAME",
+            "webDir": ".",
+            "server": { "androidScheme": "https" }
+          }
+          CAPEOF
+
+          npx cap add android 2>&1 || true
+          npx cap copy android 2>&1
+
+          cp ../release.keystore android/app/release.keystore 2>/dev/null || true
+
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file=app/release.keystore \
+            -Pandroid.injected.signing.store.password=android123 \
+            -Pandroid.injected.signing.key.alias=app \
+            -Pandroid.injected.signing.key.password=android123 \
+            --no-daemon \
+            --stacktrace 2>&1 | tail -120
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DevMobile-APK-${{ github.run_number }}
+          path: |
+            **/app/build/outputs/apk/release/*.apk
+            **/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Resumo
+        run: |
+          echo "## ✅ DevMobile APK" >> $GITHUB_STEP_SUMMARY
+          echo "Baixe o .apk na aba **Artifacts** acima." >> $GITHUB_STEP_SUMMARY

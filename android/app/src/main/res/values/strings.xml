@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">@workspace/assistente-juridico-work</string>
+  <string name="title_activity_main">@workspace/assistente-juridico-work</string>
+  <string name="custom_url_scheme">commeuappworkspaceassistentejuridico-work</string>
+</resources>

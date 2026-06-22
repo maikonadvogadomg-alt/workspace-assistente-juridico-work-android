@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Comparador Jurídico — TJMG + BCB</title>
+<style>
+:root{
+  --bg:#0f172a;--panel:#111827;--txt:#e5e7eb;--muted:#9ca3af;--accent:#f59e0b;
+  --good:#10b981;--bad:#ef4444;--info:#3b82f6;--paper:#ffffff;--border:#243244;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#e5e7eb;color:#111827;overflow:hidden}
+header{background:var(--bg);color:var(--txt);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+header h1{font-size:14px;letter-spacing:.4px;text-transform:uppercase}
+header .clock{font-family:ui-monospace,monospace;font-size:12px;color:var(--muted)}
+.wrap{display:flex;height:calc(100vh - 48px)}
+.left{width:560px;background:var(--panel);color:var(--txt);overflow:auto;padding:14px;border-right:1px solid var(--border)}
+.right{flex:1;background:#cbd5e1;overflow:auto;padding:14px}
+
+h2{font-size:12px;margin:16px 0 8px;color:var(--accent);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);padding-bottom:6px}
+.box{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px}
+label{display:block;font-size:12px;color:var(--muted);margin:8px 0 4px}
+input,select,textarea{
+  width:100%;background:rgba(0,0,0,.25);color:var(--txt);border:1px solid var(--border);
+  border-radius:10px;padding:10px;font-size:13px;outline:none
+}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+textarea{min-height:130px;font-family:ui-monospace,monospace;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+button{
+  border:0;border-radius:10px;padding:10px 12px;font-weight:800;cursor:pointer;
+  text-transform:uppercase;font-size:11px;letter-spacing:.35px;transition:opacity .15s
+}
+button:hover{opacity:.92}
+.b1{background:var(--accent);color:#111827}
+.b2{background:var(--bad);color:#fff}
+.b3{background:var(--good);color:#052e16}
+.b4{background:var(--info);color:#fff}
+.b5{background:#fff;color:#111827;border:1px solid #cbd5e1}
+
+.hint{font-size:12px;line-height:1.35;background:rgba(59,130,246,.12);border-left:3px solid var(--info);padding:10px;border-radius:10px;color:var(--txt)}
+.status{white-space:pre-wrap;font-size:12px;line-height:1.35;background:rgba(0,0,0,.25);border:1px solid var(--border);padding:10px;border-radius:10px;color:var(--txt)}
+.paper{background:var(--paper);border-radius:14px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.15);min-height:100%}
+.topbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px}
+.card h3{font-size:12px;color:#475569;text-transform:uppercase;margin-bottom:6px}
+.card .val{font-size:18px;font-weight:900}
+.card .sub{font-size:12px;color:#64748b;margin-top:4px}
+
+table{border-collapse:collapse;width:100%;font-size:12px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-top:12px}
+th,td{border-bottom:1px solid #e2e8f0;padding:8px 10px;text-align:left;vertical-align:top}
+th{background:#f1f5f9;font-weight:800;position:sticky;top:0;z-index:2}
+.mono{font-family:ui-monospace,monospace}
+
+.scenarioBox{background:rgba(59,130,246,.10);border:1px solid rgba(59,130,246,.30);border-radius:12px;padding:10px;margin-top:10px}
+.scenarioBox h4{font-size:12px;color:#93c5fd;margin-bottom:6px}
+.rmBtn{float:right;background:var(--bad);color:#fff;font-size:10px;padding:5px 8px;border-radius:8px}
+.small{font-size:11px;color:var(--muted);margin-top:6px}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:9999}
+.ovbox{background:#fff;border-radius:14px;padding:18px;min-width:320px;box-shadow:0 20px 60px rgba(0,0,0,.4);color:#0f172a}
+.spin{width:18px;height:18px;border:3px solid #cbd5e1;border-top-color:var(--accent);border-radius:50%;display:inline-block;animation:sp 1s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+@media(max-width:768px){
+  .wrap{flex-direction:column;height:auto;overflow:auto}
+  .left{width:100%;border-right:none;border-bottom:1px solid var(--border)}
+  .right{min-height:60vh}
+  .row3{grid-template-columns:1fr}
+  body{overflow:auto}
+}
+
+@media print{
+  body{overflow:visible}
+  .left, header, .btns, .hint, .status, .overlay{display:none !important}
+  .right{padding:0}
+  .paper{box-shadow:none}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Comparador Juridico — TJMG (Fator) + BCB (Juros)</h1>
+  <div class="clock" id="clock"></div>
+</header>
+
+<div class="overlay" id="ov">
+  <div class="ovbox">
+    <div><span class="spin"></span><b id="ovMsg">Processando…</b></div>
+    <div style="margin-top:6px;color:#64748b" id="ovSub">Aguarde.</div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="left">
+    <div class="hint">
+      Cole o texto bruto do PDF da Contadoria TJMG (linhas com ANO + 12 fatores).
+    </div>
+
+    <h2>1) DADOS DO CASO</h2>
+    <div class="box">
+      <label>Numero do processo</label>
+      <input id="numProcesso" placeholder="0000000-00.0000.0.00.0000"/>
+      <label>Valor principal (R$)</label>
+      <input id="principal" type="number" value="10000" step="0.01"/>
+      <div class="row">
+        <div>
+          <label>Data inicio</label>
+          <input id="dataInicio" placeholder="15/01/2021"/>
+        </div>
+        <div>
+          <label>Data fim</label>
+          <input id="dataFim" placeholder="15/12/2022"/>
+        </div>
+      </div>
+      <label>Mora a partir de (opcional)</label>
+      <input id="moraInicio" placeholder="01/06/2021"/>
+      <div class="row">
+        <div>
+          <label>Mora fixa (% ao mes)</label>
+          <input id="moraFixaPct" type="number" step="0.01" value="0"/>
+        </div>
+        <div>
+          <label>Observacao</label>
+          <input id="obs" placeholder="ex.: Sentenca ID..."/>
+        </div>
+      </div>
+    </div>
+
+    <h2>2) CORRECAO TJMG (PDF)</h2>
+    <div class="box">
+      <textarea id="tjText" placeholder="Cole aqui o texto do PDF do TJMG..."></textarea>
+      <label>Formula do % mensal</label>
+      <select id="tjFormula">
+        <option value="prevovercurr">correcao% = (fator anterior / fator atual - 1) * 100</option>
+        <option value="curroverprev">correcao% = (fator atual / fator anterior - 1) * 100</option>
+      </select>
+      <div class="row" style="margin-top:10px">
+        <button class="b1" id="btnConvertTJ">Converter e Carregar</button>
+        <button class="b2" id="btnClearTJ">Limpar</button>
+      </div>
+    </div>
+
+    <h2>3) JUROS BCB (SGS)</h2>
+    <div class="box">
+      <div class="row3">
+        <div>
+          <label>Serie SGS</label>
+          <input id="bcbCode" placeholder="ex: 433"/>
+        </div>
+        <div>
+          <label>Coluna</label>
+          <input id="bcbCol" value="rembcbpct"/>
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="b4" id="btnFetchBCB" style="width:100%">Buscar</button>
+        </div>
+      </div>
+    </div>
+
+    <h2>4) CENARIOS</h2>
+    <div id="scenariosContainer"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="b3" id="btnAddScenario">+ Adicionar Cenario</button>
+      <button class="b2" id="btnResetScenarios">Reset Padrao</button>
+    </div>
+
+    <div class="box" style="margin-top:20px">
+      <div class="row">
+        <button class="b1" id="btnCalcular">Calcular e Comparar</button>
+        <button class="b5" id="btnExportCSV">Exportar CSV</button>
+      </div>
+    </div>
+
+    <h2>STATUS</h2>
+    <div class="status" id="status">Pronto.</div>
+  </div>
+
+  <div class="right">
+    <div class="paper">
+      <div class="topbar">
+        <div>
+          <div style="font-weight:900;font-size:14px">Resultados</div>
+          <div style="font-size:12px;color:#64748b" id="summaryLine">Aguardando calculo...</div>
+        </div>
+        <div class="btns">
+          <button class="b5" id="btnCopyResumo">Copiar Resumo</button>
+          <button class="b5" onclick="window.print()">Imprimir PDF</button>
+        </div>
+      </div>
+      <div class="grid" id="cards"></div>
+      <table id="tbl">
+        <thead><tr id="tblHead"><th>Competencia</th></tr></thead>
+        <tbody id="tblBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+var INDEX = new Map();
+var SCENARIOS = [];
+var LAST = null;
+var nextScenarioId = 1;
+
+var $ = function(id) { return document.getElementById(id); };
+
+function setClock(){ $("clock").textContent = new Date().toLocaleString("pt-BR"); }
+setInterval(setClock,1000); setClock();
+
+function ov(on,msg,sub){
+  $("ov").style.display = on ? "flex" : "none";
+  if(msg) $("ovMsg").textContent = msg;
+  if(sub) $("ovSub").textContent = sub;
+}
+function setStatus(s){ $("status").textContent = s; }
+function fmtBRL(n){ return (Number(n)||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); }
+
+function toNumberBR(x){
+  if(x==null) return 0;
+  if(typeof x==="number") return x;
+  var s = String(x).trim();
+  if(!s) return 0;
+  s = s.replace(/[^\d,.\-]/g,"");
+  if(s.includes(",")) s = s.replace(/\./g,"").replace(",",".");
+  var n = Number(s);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function parseDateBR(str){
+  var m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec((str||"").trim());
+  if(!m) return null;
+  return new Date(+m[3], +m[2]-1, +m[1]);
+}
+
+function dateToYM(d){
+  var y=d.getFullYear();
+  var m=String(d.getMonth()+1).padStart(2,"0");
+  return y+"-"+m;
+}
+
+function listMonths(startDate,endDate){
+  var out=[];
+  var d=new Date(startDate.getTime()); d.setDate(1);
+  var e=new Date(endDate.getTime()); e.setDate(1);
+  while(d<=e){
+    out.push(dateToYM(d));
+    d.setMonth(d.getMonth()+1);
+  }
+  return out;
+}
+
+$("btnClearTJ").addEventListener("click", function(){
+  $("tjText").value = "";
+  setStatus("TJMG limpo.");
+});
+
+$("btnConvertTJ").addEventListener("click", function(){
+  var raw = $("tjText").value;
+  if(!raw.trim()) return alert("Cole o texto do PDF.");
+  var formula = $("tjFormula").value;
+
+  ov(true,"Processando TJMG...");
+  setTimeout(function(){
+    try {
+      var txt = raw.replace(/\u00A0/g," ").replace(/\r/g,"\n");
+      var lines = txt.split("\n").map(function(l){return l.trim()}).filter(Boolean);
+      var loaded = 0;
+
+      var yearRows = [];
+      for(var i=0; i<lines.length; i++){
+        var line = lines[i];
+        var nums = line.match(/-?\d{1,3}(?:\.\d{3})*(?:,\d+)?|-?\d+(?:,\d+)?/g);
+        if(!nums || nums.length < 10) continue;
+        var yearMatch = line.match(/\b(19|20)\d{2}\b/);
+        if(!yearMatch) continue;
+        var year = parseInt(yearMatch[0]);
+        var factors = nums.filter(function(n){ return n.includes(',') || n.includes('.') }).map(toNumberBR);
+        if(factors.length >= 12) yearRows.push({year: year, factors: factors.slice(0,12)});
+      }
+
+      yearRows.sort(function(a,b){return a.year-b.year});
+      var prevFator = null;
+
+      for(var yi=0; yi<yearRows.length; yi++){
+        var yr = yearRows[yi];
+        for(var m=1; m<=12; m++){
+          var ym = yr.year+"-"+String(m).padStart(2,"0");
+          var fator = yr.factors[m-1];
+          var cor = 0;
+          if(prevFator){
+            cor = (formula === "curroverprev") ? ((fator/prevFator)-1)*100 : ((prevFator/fator)-1)*100;
+          }
+          var obj = INDEX.get(ym) || {competencia: ym};
+          obj.correcao_pct = cor;
+          obj.fator_tj = fator;
+          INDEX.set(ym, obj);
+          prevFator = fator;
+          loaded++;
+        }
+      }
+      setStatus("TJMG Carregado: "+loaded+" meses.");
+    } catch(e) { alert("Erro: "+e.message); }
+    ov(false);
+  }, 50);
+});
+
+$("btnFetchBCB").addEventListener("click", function(){
+  var code = $("bcbCode").value.trim();
+  var col = $("bcbCol").value.trim().toLowerCase();
+  var dIni = parseDateBR($("dataInicio").value);
+  var dFim = parseDateBR($("dataFim").value);
+  if(!code || !dIni || !dFim) return alert("Preencha Codigo e Datas.");
+
+  ov(true, "Buscando BCB...");
+  fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs."+code+"/dados?formato=json&dataInicial="+$("dataInicio").value+"&dataFinal="+$("dataFim").value)
+    .then(function(resp){ return resp.json() })
+    .then(function(data){
+      data.forEach(function(item){
+        var p = item.data.split("/");
+        var ym = p[2]+"-"+p[1];
+        var obj = INDEX.get(ym) || {competencia: ym};
+        obj[col] = toNumberBR(item.valor);
+        INDEX.set(ym, obj);
+      });
+      setStatus("BCB Serie "+code+" carregada.");
+      ov(false);
+    })
+    .catch(function(e){ alert("Erro BCB: "+e.message); ov(false); });
+});
+
+function addScenario(preset){
+  var id = nextScenarioId++;
+  var sc = {
+    id: id,
+    nome: preset&&preset.nome ? preset.nome : "Cenario "+id,
+    corrField: "correcao_pct",
+    remField: "rembcbpct",
+    moraField: "mora_pct",
+    remMode: preset&&preset.remMode ? preset.remMode : "compound_monthly",
+    moraMode: "simple_monthly",
+    moraSobre: "saldo_corrigido"
+  };
+  SCENARIOS.push(sc);
+  renderScenarios();
+}
+
+function renderScenarios(){
+  var c = $("scenariosContainer");
+  c.innerHTML = "";
+  SCENARIOS.forEach(function(sc){
+    var div = document.createElement("div");
+    div.className = "scenarioBox";
+    div.innerHTML =
+      '<button class="rmBtn" onclick="removeScenario('+sc.id+')">Remover</button>'+
+      '<input style="font-weight:bold; color:var(--accent); margin-bottom:5px" onchange="updateScen('+sc.id+',\'nome\',this.value)" value="'+sc.nome+'"/>'+
+      '<div class="row">'+
+        '<select onchange="updateScen('+sc.id+',\'remMode\',this.value)">'+
+          '<option value="compound_monthly" '+(sc.remMode==='compound_monthly'?'selected':'')+'>Juros Compostos Mensais</option>'+
+          '<option value="simple_monthly" '+(sc.remMode==='simple_monthly'?'selected':'')+'>Juros Simples Mensais</option>'+
+        '</select>'+
+        '<select onchange="updateScen('+sc.id+',\'moraSobre\',this.value)">'+
+          '<option value="saldo_corrigido" '+(sc.moraSobre==='saldo_corrigido'?'selected':'')+'>Mora s/ Saldo Corrigido</option>'+
+          '<option value="saldo_total" '+(sc.moraSobre==='saldo_total'?'selected':'')+'>Mora s/ Saldo Total</option>'+
+        '</select>'+
+      '</div>';
+    c.appendChild(div);
+  });
+}
+
+window.removeScenario = function(id){ SCENARIOS = SCENARIOS.filter(function(s){return s.id!==id}); renderScenarios(); };
+window.updateScen = function(id, field, val){ var s = SCENARIOS.find(function(x){return x.id===id}); if(s) s[field] = val; };
+
+$("btnResetScenarios").addEventListener("click", function(){
+  SCENARIOS = [];
+  addScenario({nome: "Cenario A (Banco)", remMode: "compound_monthly"});
+  addScenario({nome: "Cenario B (Sentenca)", remMode: "simple_monthly"});
+});
+
+$("btnAddScenario").addEventListener("click", function(){ addScenario(); });
+
+$("btnCalcular").addEventListener("click", function(){
+  var principal = toNumberBR($("principal").value);
+  var dIni = parseDateBR($("dataInicio").value);
+  var dFim = parseDateBR($("dataFim").value);
+  if(!dIni || !dFim || principal <= 0) return alert("Verifique os dados de entrada.");
+
+  var months = listMonths(dIni, dFim);
+  var moraStart = $("moraInicio").value ? dateToYM(parseDateBR($("moraInicio").value)) : "9999-99";
+  var moraFixa = toNumberBR($("moraFixaPct").value);
+
+  var results = SCENARIOS.map(function(sc){
+    var saldo = principal;
+    var poteRem = 0;
+    var poteMora = 0;
+    var rows = [];
+
+    months.forEach(function(ym){
+      var idx = INDEX.get(ym) || {};
+      var cPct = idx.correcao_pct || 0;
+      var rPct = idx[sc.remField] || 0;
+      var mPct = (ym >= moraStart) ? (moraFixa || idx[sc.moraField] || 0) : 0;
+
+      var f = 1 + (cPct/100);
+      saldo *= f; poteRem *= f; poteMora *= f;
+
+      var jRem = saldo * (rPct/100);
+      if(sc.remMode === "compound_monthly") saldo += jRem;
+      else poteRem += jRem;
+
+      var baseMora = (sc.moraSobre === "saldo_total") ? (saldo + poteRem) : saldo;
+      var jMora = baseMora * (mPct/100);
+      poteMora += jMora;
+
+      rows.push({ ym: ym, total: saldo + poteRem + poteMora, cPct: cPct, rPct: rPct, mPct: mPct });
+    });
+
+    return { nome: sc.nome, rows: rows, final: saldo + poteRem + poteMora };
+  });
+
+  LAST = { months: months, results: results };
+  renderTable();
+});
+
+function renderTable(){
+  var months = LAST.months;
+  var results = LAST.results;
+  $("cards").innerHTML = "";
+  $("tblBody").innerHTML = "";
+  $("tblHead").innerHTML = "<th>Competencia</th>";
+
+  results.forEach(function(res){
+    var card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = "<h3>"+res.nome+"</h3><div class='val'>"+fmtBRL(res.final)+"</div>";
+    $("cards").appendChild(card);
+    $("tblHead").innerHTML += "<th>"+res.nome+"</th>";
+  });
+
+  months.forEach(function(ym, i){
+    var tr = document.createElement("tr");
+    tr.innerHTML = "<td class='mono'>"+ym+"</td>";
+    results.forEach(function(res){
+      var r = res.rows[i];
+      tr.innerHTML += "<td>"+fmtBRL(r.total)+"<br><small class='muted'>C:"+r.cPct.toFixed(3)+"% R:"+r.rPct.toFixed(3)+"%</small></td>";
+    });
+    $("tblBody").appendChild(tr);
+  });
+  $("summaryLine").textContent = "Calculo finalizado para "+months.length+" meses.";
+}
+
+$("btnExportCSV").addEventListener("click", function(){
+  if(!LAST) return alert("Calcule primeiro.");
+  var months = LAST.months;
+  var results = LAST.results;
+  var csv = "Competencia";
+  results.forEach(function(r){ csv += ";"+r.nome; });
+  csv += "\n";
+  months.forEach(function(ym, i){
+    csv += ym;
+    results.forEach(function(r){
+      csv += ";"+r.rows[i].total.toFixed(2).replace(".",",");
+    });
+    csv += "\n";
+  });
+  var blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "comparador_juridico.csv";
+  a.click();
+});
+
+$("btnCopyResumo").addEventListener("click", function(){
+  if(!LAST) return alert("Calcule primeiro.");
+  var txt = "COMPARADOR JURIDICO - RESUMO\n\n";
+  LAST.results.forEach(function(r){
+    txt += r.nome + ": " + fmtBRL(r.final) + "\n";
+  });
+  txt += "\nPeriodo: " + LAST.months[0] + " a " + LAST.months[LAST.months.length-1];
+  txt += "\nMeses: " + LAST.months.length;
+  navigator.clipboard.writeText(txt).then(function(){alert("Resumo copiado!")});
+});
+
+addScenario({nome: "Cenario A (Banco)", remMode: "compound_monthly"});
+addScenario({nome: "Cenario B (Sentenca)", remMode: "simple_monthly"});
+</script>
+</body>
+</html>

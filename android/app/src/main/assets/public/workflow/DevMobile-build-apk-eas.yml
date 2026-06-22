@@ -1,0 +1,71 @@
+name: "\uD83D\uDE80 Build APK - DevMobile (EAS)"
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Instalar dependencias
+        run: |
+          [ -f package-lock.json ] && npm ci || \
+          [ -f yarn.lock ] && yarn install --frozen-lockfile || \
+          npm install --legacy-peer-deps
+
+      - name: Instalar EAS CLI
+        run: npm install -g eas-cli@latest
+
+      - name: Verificar configuracao EAS
+        run: |
+          echo "=== app.json ===" && cat app.json | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)
+          e=d.get('expo',{})
+          print('App:', e.get('name'))
+          print('Slug:', e.get('slug'))
+          print('Package:', e.get('android',{}).get('package'))
+          print('projectId:', e.get('extra',{}).get('eas',{}).get('projectId'))
+          "
+          echo ""
+          echo "=== eas.json ===" && cat eas.json
+
+      - name: Build APK (EAS Cloud - perfil preview)
+        run: |
+          eas build \
+            --platform android \
+            --profile preview \
+            --non-interactive \
+            --no-wait
+          echo "Build enviado para o EAS Cloud!"
+          echo ""
+          echo "IMPORTANTE: O APK ficara pronto em ~10 minutos."
+          echo "Acesse: https://expo.dev/builds para baixar."
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Instrucoes
+        run: |
+          echo "## ⏳ Build Enviado para EAS!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "O APK estará pronto em **~10 minutos**." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Como baixar:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Acesse [expo.dev/builds](https://expo.dev/builds)" >> $GITHUB_STEP_SUMMARY
+          echo "2. Encontre o build **DevMobile**" >> $GITHUB_STEP_SUMMARY
+          echo "3. Baixe o **.apk** quando terminar" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Se der erro de token:" >> $GITHUB_STEP_SUMMARY
+          echo "Adicione o secret **EXPO_TOKEN** em:" >> $GITHUB_STEP_SUMMARY
+          echo "GitHub → Settings → Secrets → Actions" >> $GITHUB_STEP_SUMMARY
